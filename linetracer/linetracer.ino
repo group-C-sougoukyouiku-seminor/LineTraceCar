@@ -114,11 +114,11 @@ DoubleResult photoReflector(int s1, int s2, int s3, int s4, int s5){
 
 
 
-  PhotoReflector.position = (s1 < threshold ? 3 : 0) +
-                            (s2 < threshold ? 1 : 0) +
+  PhotoReflector.position = (s1 < threshold ? -3 : 0) +
+                            (s2 < threshold ? -1 : 0) +
                             (s3 < threshold ? 0 : 0) +
-                            (s4 < threshold ? -1 : 0) +
-                            (s5 < threshold ? -3 : 0);
+                            (s4 < threshold ? 1 : 0) +
+                            (s5 < threshold ? 3 : 0);
 
   PhotoReflector.lightCount = (s1 < threshold ? 1 : 0) + 
                               (s2 < threshold ? 1 : 0) + 
@@ -153,6 +153,8 @@ void loop(){
   
     motor.motorDRV8833_R(baseSpeed - correction);
     motor.motorDRV8833_L(baseSpeed + correction);
+
+    }
   }
 
   if (s1 > threshold && s2 > threshold && s3 > threshold && s4 > threshold && s5 > threshold) {
