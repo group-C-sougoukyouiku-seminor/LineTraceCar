@@ -1,3 +1,10 @@
+//整数型2個の構造体の定義
+struct DoubleResult{
+  int position;
+  int lightCount;
+};
+
+
 // ピン設定
 const int AIN1 = 4;
 const int AIN2 = 2;
@@ -6,12 +13,14 @@ const int BIN2 = 26;
 const int STBY = 25;  // LOWにするとスリープモードになる
 int previousDirection = 0;
 
+int step = 0; //ステップ数
 float integral = 0;  // 積分初期値
 float lastError = 0; // 1ステップ前の初期値
 float Kp = 10;      // 比例定数
 float Ki = 0.4;        // 積分定数
 float Kd = 2.5;        // 微分定数
 float baseSpeed = 100; //モーター回転速度初期値
+int threshold = 2000; //フォトリフレクタ反応閾値
 
 class DRV8833 {
   private:
@@ -72,7 +81,7 @@ void setup() {
 }
 
 //PID制御関数
-float PIDControl(int error){
+float PIDControl(float error){
   // P成分
   float proportional = Kp * error;
 
@@ -85,7 +94,7 @@ float PIDControl(int error){
   lastError = error;
 
   // 最終補正量
-  correction = (proportional + integralCorrection + derivative) * 0.5;
+  float correction = (proportional + integralCorrection + derivative) * 0.5;
   
   return correction;
 }
@@ -97,49 +106,58 @@ int detectObstacle(){
   return Distance;
 }
 
+DoubleResult photoReflector(int s1, int s2, int s3, int s4, int s5){
+  DoubleResult PhotoReflector;
+  // フォトリフレクタの値読み取り
+  // 光が反射しない、黒 → 値0
+  // 光が反射する、白 → 値4095
+
+
+
+  PhotoReflector.position = (s1 < threshold ? 3 : 0) +
+                            (s2 < threshold ? 1 : 0) +
+                            (s3 < threshold ? 0 : 0) +
+                            (s4 < threshold ? -1 : 0) +
+                            (s5 < threshold ? -3 : 0);
+
+  PhotoReflector.lightCount = (s1 < threshold ? 1 : 0) + 
+                              (s2 < threshold ? 1 : 0) + 
+                              (s3 < threshold ?  1 : 0) + 
+                              (s4 < threshold ?  1 : 0) + 
+                              (s5 < threshold ?  1 : 0);
+
+  return PhotoReflector;
+}
 
 unsigned long previousTime = 0;
 const unsigned long interval = 10;
 float correction;
 
-void loop() {
-  // フォトリフレクタの値読み取り
-  // 光が反射しない、黒 → 値0
-  // 光が反射する、白 → 値4095
+void loop(){
   int s1 = analogRead(14);
   int s2 = analogRead(33);
   int s3 = analogRead(32);
   int s4 = analogRead(34);
   int s5 = analogRead(35);
 
-  int threshold = 2000;
-  int position = (s1 < threshold ? -3 : 0) + 
-                 (s2 < threshold ? -1 : 0) + 
-                 (s3 < threshold ?  0 : 0) + 
-                 (s4 < threshold ?  1 : 0) + 
-                 (s5 < threshold ?  3 : 0);
-
-  int light_count = (s1 < threshold ? 1 : 0) + 
-                 (s2 < threshold ? 1 : 0) + 
-                 (s3 < threshold ?  1 : 0) + 
-                 (s4 < threshold ?  1 : 0) + 
-                 (s5 < threshold ?  1 : 0);
+  DoubleResult PhotoReflector = photoReflector(s1, s2, s3, s4, s5);
 
   unsigned long currentTime = millis();
   if (currentTime - previousTime >= interval) {
     previousTime = currentTime;
 
-    float error = position / light_count;  
+    float error = PhotoReflector.position / PhotoReflector.lightCount;  
 
-    float correction = PIDContorol(error);
+    float correction = PIDControl(error);
 
-
-  motor.motorDRV8833_R(baseSpeed - correction);
-  motor.motorDRV8833_L(baseSpeed + correction);
+  
+    motor.motorDRV8833_R(baseSpeed - correction);
+    motor.motorDRV8833_L(baseSpeed + correction);
+  }
 
   if (s1 > threshold && s2 > threshold && s3 > threshold && s4 > threshold && s5 > threshold) {
     Serial.println("ライン外れ");
-    motor.motorDRV8833_R(-100);
-    motor.motorDRV8833_L(100);
+    motor.motorDRV8833_R(0);
+    motor.motorDRV8833_L(0);
   }
 }
