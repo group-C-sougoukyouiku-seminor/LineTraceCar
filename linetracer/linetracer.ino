@@ -11,9 +11,9 @@ float deltaTime;
 
 float integral = 0;  // グローバル変数
 float lastError = 0; // グローバル変数
-float Kp = 0.05;      // グローバル変数
-float Ki = 0.01;        // グローバル変数
-float Kd = 0.01;        // グローバル変数
+float Kp = 0.2;
+float Ki = 0.05;
+float Kd = 0.1;
 
 class DRV8833 {
   private:
@@ -79,16 +79,6 @@ void loop() {
     deltaTime = (currentTime - previousTime) / 1000.0;
     previousTime = currentTime;
 
-
-  // int smoothSensorRead(int pin) {
-  //   int total = 0;
-  //   for (int i = 0; i < 5; i++) {
-  //     total += analogRead(pin);
-  //     delay(1); // 少し待つ
-  //   }
-  //   return total / 5;
-  // }
-
   // フォトリフレクタの値読み取り
   // 光が反射しない、黒 → 値0
   // 光が反射する、白 → 値4095
@@ -98,9 +88,8 @@ void loop() {
   int s4 = analogRead(34);
   int s5 = analogRead(35);
 
-String checkThreshold =  " [ " +  String(s1) + " / " + String(s2) + " / " + String(s3) + " / " + String(s4) + " / " + String(s5) + " ] "; 
-
-Serial.println(checkThreshold);
+  String checkThreshold =  " [ " +  String(s1) + " / " + String(s2) + " / " + String(s3) + " / " + String(s4) + " / " + String(s5) + " ] "; 
+  Serial.println(checkThreshold);
 
   int threshold = 2000;
   int position = (s1 < threshold ? -2 : 0) + 
@@ -125,7 +114,10 @@ Serial.println(checkThreshold);
   // 最終補正量
   float correction = (proportional + integralCorrection + derivative) * 1;
 
-  float baseSpeed = 150;
+  Serial.print("correction: ");
+  Serial.println(correction);
+
+  float baseSpeed = 200;
   
   motor.motorDRV8833_R(baseSpeed - correction);
   motor.motorDRV8833_L(baseSpeed + correction);
