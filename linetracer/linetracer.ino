@@ -84,13 +84,37 @@ void setup() {
 
 }
 
-//PID制御関数
-float PIDControl(float error){
+const int BUFFER_SIZE = 100; // バッファサイズ（十分な値を選択）
+float errorBuffer[BUFFER_SIZE];  // 誤差を記録する配列
+unsigned long timeBuffer[BUFFER_SIZE]; // タイムスタンプを記録する配列
+int bufferIndex = 0; // 現在のバッファインデックス
+
+float calculateIntegral(float currentError, unsigned long currentTime) {
+  // 現在の誤差と時刻をバッファに記録
+  errorBuffer[bufferIndex] = currentError;
+  timeBuffer[bufferIndex] = currentTime;
+  bufferIndex = (bufferIndex + 1) % BUFFER_SIZE; // リングバッファのインデックス管理
+
+  // 過去3秒以内の誤差を合計
+  float integralSum = 0;
+  for (int i = 0; i < BUFFER_SIZE; i++) {
+    if (currentTime - timeBuffer[i] <= 3000) { // 3秒以内のデータのみ
+      integralSum += errorBuffer[i];
+    }
+  }
+
+  return integralSum;
+}
+
+// PID制御関数（修正版）
+float PIDControl(float error) {
+  unsigned long currentTime = millis();
+
   // P成分
   float proportional = Kp * error;
 
-  // I成分
-  integral += error;
+  // I成分（過去3秒間の誤差のみを考慮）
+  integral = calculateIntegral(error, currentTime);
   float integralCorrection = Ki * integral;
 
   // D成分
@@ -99,7 +123,6 @@ float PIDControl(float error){
 
   // 最終補正量
   float correction = (proportional + integralCorrection + derivative) * PIDvalue;
-  
   return correction;
 }
 
@@ -178,7 +201,7 @@ void loop(){
 
   if (s1 > threshold && s2 > threshold && s3 > threshold && s4 > threshold && s5 > threshold) {
     Serial.println("ライン外れ");
-    motor.motorDRV8833_R(0);
-    motor.motorDRV8833_L(0);
+    motor.motorDRV8833_R(80);
+    motor.motorDRV8833_L(80);
   }
 }
