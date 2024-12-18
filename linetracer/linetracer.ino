@@ -19,8 +19,12 @@ float lastError = 0; // 1ステップ前の初期値
 float Kp = 10;      // 比例定数
 float Ki = 0.4;        // 積分定数
 float Kd = 2.5;        // 微分定数
-float baseSpeed = 100; //モーター回転速度初期値
+float PIDvalue = 1; //PID制御の倍率
+float baseSpeed = 200; //モーター回転速度初期値
 int threshold = 2000; //フォトリフレクタ反応閾値
+float maxSpeed = 255;
+float minSpeed = 0;
+
 
 class DRV8833 {
   private:
@@ -94,7 +98,7 @@ float PIDControl(float error){
   lastError = error;
 
   // 最終補正量
-  float correction = (proportional + integralCorrection + derivative) * 0.5;
+  float correction = (proportional + integralCorrection + derivative) * PIDvalue;
   
   return correction;
 }
@@ -111,9 +115,6 @@ DoubleResult photoReflector(int s1, int s2, int s3, int s4, int s5){
   // フォトリフレクタの値読み取り
   // 光が反射しない、黒 → 値0
   // 光が反射する、白 → 値4095
-
-
-
   PhotoReflector.position = (s1 < threshold ? -3 : 0) +
                             (s2 < threshold ? -1 : 0) +
                             (s3 < threshold ? 0 : 0) +
@@ -129,10 +130,13 @@ DoubleResult photoReflector(int s1, int s2, int s3, int s4, int s5){
   return PhotoReflector;
 }
 
+//時間計測
 unsigned long previousTime = 0;
-const unsigned long interval = 10;
+const unsigned long interval = 10; //PID制御を回す周期
 float correction;
 
+
+//メインの文章
 void loop(){
   int s1 = analogRead(14);
   int s2 = analogRead(33);
@@ -150,11 +154,26 @@ void loop(){
 
     float correction = PIDControl(error);
 
-  
-    motor.motorDRV8833_R(baseSpeed - correction);
-    motor.motorDRV8833_L(baseSpeed + correction);
+    float RmotorSpeed = baseSpeed - correction;
+    float LmotorSpeed = baseSpeed + correction;
 
-    }
+
+    if (RmotorSpeed >= maxSpeed){
+      RmotorSpeed = maxSpeed;
+    } 
+    if (LmotorSpeed >= maxSpeed){
+      LmotorSpeed = maxSpeed;
+    } 
+    if (RmotorSpeed <= minSpeed){
+      RmotorSpeed = minSpeed;
+    } 
+    if (LmotorSpeed <= minSpeed){
+      LmotorSpeed = minSpeed;
+    } 
+  
+    motor.motorDRV8833_R(RmotorSpeed);
+    motor.motorDRV8833_L(LmotorSpeed);
+
   }
 
   if (s1 > threshold && s2 > threshold && s3 > threshold && s4 > threshold && s5 > threshold) {
