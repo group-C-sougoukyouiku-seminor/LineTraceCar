@@ -16,9 +16,9 @@ int previousDirection = 0;
 int step = 0; //ステップ数
 float integral = 0;  // 積分初期値
 float lastError = 0; // 1ステップ前の初期値
-float Kp = 100;      // 比例定数
-float Ki = 6;        // 積分定数
-float Kd = 3;        // 微分定数
+float Kp = 90;      // 比例定数
+float Ki = 1;        // 積分定数
+float Kd = 5;        // 微分定数
 float PIDvalue = 0.3; //PID制御の倍率
 float baseSpeed = 150; //モーター回転速度初期値
 int threshold = 2000; //フォトリフレクタ反応閾値
@@ -173,6 +173,7 @@ void loop(){
   
     motor.motorDRV8833_R(RmotorSpeed);
     motor.motorDRV8833_L(LmotorSpeed);
+
 
   }
 
