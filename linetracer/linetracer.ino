@@ -22,9 +22,9 @@ int previousDirection = 0;
 int step = 0; //ステップ数
 float integral = 0;  // 積分初期値
 float lastError = 0; // 1ステップ前の初期値
-float Kp = 90;      // 比例定数
-float Ki = 1;        // 積分定数
-float Kd = 5;        // 微分定数
+float Kp = 100;      // 比例定数
+float Ki = 6;        // 積分定数
+float Kd = 3;        // 微分定数
 float PIDvalue = 0.3; //PID制御の倍率
 float baseSpeed = 150; //モーター回転速度初期値
 int threshold = 2000; //フォトリフレクタ反応閾値
@@ -173,7 +173,7 @@ void loop(){
   unsigned long currentTime = millis();
 
 if (Distance < 15 && Distance != 0.0) {
-    Serial.println("Obstacle detected!");
+    Serial.println("障害物検知！");
     Serial.println(Distance);
 
     // 障害物検知 → 停止
@@ -185,36 +185,13 @@ if (Distance < 15 && Distance != 0.0) {
     Serial.println("Turning Right");
     motor.motorDRV8833_R(-150); // 右モーター後退
     motor.motorDRV8833_L(150);  // 左モーター前進
-    delay(400);  
+    delay(200);  
 
-    // 少し前進
+    // ちゃんと前進
     Serial.println("Moving Forward");
     motor.motorDRV8833_R(150);  // 右モーター前進
     motor.motorDRV8833_L(150);  // 左モーター前進
-    delay(800); 
-
-    // 障害物検知 → 停止
-    motor.motorDRV8833_R(0);
-    motor.motorDRV8833_L(0);
-    delay(500); 
-
-    // ちょい左に曲がって戻る
-    Serial.println("Turning Left");
-    motor.motorDRV8833_R(150);  // 右モーター前進
-    motor.motorDRV8833_L(-150); // 左モーター後退
-    delay(800);  
-
-    // 最後に前進
-    Serial.println("Moving Forward");
-    motor.motorDRV8833_R(150);  // 右モーター前進
-    motor.motorDRV8833_L(150);  // 左モーター前進
-    delay(800);  
-
-    // ちょい右に曲がる
-    Serial.println("Turning Right");
-    motor.motorDRV8833_R(-150); // 右モーター後退
-    motor.motorDRV8833_L(150);  // 左モーター前進
-    delay(400);  
+    delay(1000); 
     
 }
 
@@ -252,7 +229,7 @@ if (Distance < 15 && Distance != 0.0) {
 
   if (s1 > threshold && s2 > threshold && s3 > threshold && s4 > threshold && s5 > threshold) {
     Serial.println("ライン外れ");
-    motor.motorDRV8833_R(80);
-    motor.motorDRV8833_L(80);
+    motor.motorDRV8833_R(0);
+    motor.motorDRV8833_L(0);
   }
 }
