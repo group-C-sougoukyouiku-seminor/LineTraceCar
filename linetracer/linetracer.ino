@@ -1,4 +1,10 @@
 //整数型2個の構造体の定義
+#define trigPin 18  // トリガーピン  超音波を送信するための信号を送信
+#define echoPin 19  // エコーピン  反射音波を受信するしてものを読み取るためのピン
+
+float Duration = 0;  // 計測した時間
+float Distance = 0;  // 距離
+
 struct DoubleResult{
   int position;
   int lightCount;
@@ -82,6 +88,11 @@ void setup() {
   Serial.begin(115200);
   // previousDirection = 0;
 
+  pinMode(echoPin,INPUT);   // エコーピンを入力に
+  pinMode(trigPin,OUTPUT);  // トリガーピンを出力に
+
+  pinMode(15, OUTPUT);
+
 }
 
 //PID制御関数
@@ -105,10 +116,10 @@ float PIDControl(float error){
 
 //障害物検知関数
 //2つのセンサで障害物を検知して
-int detectObstacle(){
-  int Distance;
-  return Distance;
-}
+// int detectObstacle(){
+//   int Distance;
+//   return Distance;
+// }
 
 DoubleResult photoReflector(int s1, int s2, int s3, int s4, int s5){
   DoubleResult PhotoReflector;
@@ -138,6 +149,19 @@ float correction;
 
 //メインの文章
 void loop(){
+  digitalWrite(trigPin,LOW);              // 計測前に一旦トリガーピンをLowに
+  delayMicroseconds(2);
+  digitalWrite(trigPin,HIGH);             // トリガーピンを10μsの時間だけHighに→センサーから超音波が出る
+  delayMicroseconds(10);
+  digitalWrite(trigPin,LOW);
+  ////////////////////////
+  // 超音波が送信されてから戻ってくるまでの時間[μs] 
+  Duration = pulseIn(echoPin,HIGH);      //  pulseInは特定のパルス(今回はHIGH)の長さをμsで返す
+
+  /// パルスの長さから物体までの距離[mm]を算出 ///
+  Duration = Duration / 2;               // 距離を1/2に
+  Distance = Duration*340*1000/1000000 / 10;  
+
   int s1 = analogRead(14);
   int s2 = analogRead(33);
   int s3 = analogRead(32);
@@ -147,10 +171,58 @@ void loop(){
   DoubleResult PhotoReflector = photoReflector(s1, s2, s3, s4, s5);
 
   unsigned long currentTime = millis();
+
+if (Distance < 15 && Distance != 0.0) {
+    Serial.println("Obstacle detected!");
+    Serial.println(Distance);
+
+    // 障害物検知 → 停止
+    motor.motorDRV8833_R(0);
+    motor.motorDRV8833_L(0);
+    delay(500); 
+
+    // ちょい右に曲がる
+    Serial.println("Turning Right");
+    motor.motorDRV8833_R(-150); // 右モーター後退
+    motor.motorDRV8833_L(150);  // 左モーター前進
+    delay(400);  
+
+    // 少し前進
+    Serial.println("Moving Forward");
+    motor.motorDRV8833_R(150);  // 右モーター前進
+    motor.motorDRV8833_L(150);  // 左モーター前進
+    delay(800); 
+
+    // 障害物検知 → 停止
+    motor.motorDRV8833_R(0);
+    motor.motorDRV8833_L(0);
+    delay(500); 
+
+    // ちょい左に曲がって戻る
+    Serial.println("Turning Left");
+    motor.motorDRV8833_R(150);  // 右モーター前進
+    motor.motorDRV8833_L(-150); // 左モーター後退
+    delay(800);  
+
+    // 最後に前進
+    Serial.println("Moving Forward");
+    motor.motorDRV8833_R(150);  // 右モーター前進
+    motor.motorDRV8833_L(150);  // 左モーター前進
+    delay(800);  
+
+    // ちょい右に曲がる
+    Serial.println("Turning Right");
+    motor.motorDRV8833_R(-150); // 右モーター後退
+    motor.motorDRV8833_L(150);  // 左モーター前進
+    delay(400);  
+    
+}
+
   if (currentTime - previousTime >= interval) {
     previousTime = currentTime;
 
-    float error = PhotoReflector.position / PhotoReflector.lightCount;  
+  float error = (PhotoReflector.lightCount != 0) ? 
+               (PhotoReflector.position / PhotoReflector.lightCount) : 0; 
 
     float correction = PIDControl(error);
 
@@ -170,16 +242,17 @@ void loop(){
     if (LmotorSpeed <= minSpeed){
       LmotorSpeed = minSpeed;
     } 
-  
+
+    Serial.println(RmotorSpeed);
+    Serial.println(LmotorSpeed);
+
     motor.motorDRV8833_R(RmotorSpeed);
     motor.motorDRV8833_L(LmotorSpeed);
-
-
   }
 
   if (s1 > threshold && s2 > threshold && s3 > threshold && s4 > threshold && s5 > threshold) {
     Serial.println("ライン外れ");
-    motor.motorDRV8833_R(0);
-    motor.motorDRV8833_L(0);
+    motor.motorDRV8833_R(80);
+    motor.motorDRV8833_L(80);
   }
 }
